@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kctm_postgres
+    environment:
+      POSTGRES_DB: kctm_db
+      POSTGRES_USER: ${DB_USER:-kct_dev}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-kct_dev}
+    ports:
+      - "5432:5432"
+    volumes:
+      - kctm_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  kctm_pgdata:
