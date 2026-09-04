@@ -191,6 +191,40 @@ public class AdminEcosystemeController {
         return ResponseEntity.ok(service.traiterCandidature(id, req));
     }
 
+    // ==================== ÉVÉNEMENTS ====================
+
+    @GetMapping("/evenements")
+    @Operation(summary = "Lister tous les événements")
+    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = EvenementDto.class)))
+    @ApiResponse(responseCode = "403", description = "Accès réservé au niveau 1")
+    public ResponseEntity<List<EvenementDto>> getAllEvenements() {
+        return ResponseEntity.ok(service.getAllEvenements());
+    }
+
+    @PostMapping("/evenements")
+    @Operation(summary = "Créer un événement")
+    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = EvenementDto.class)))
+    public ResponseEntity<EvenementDto> createEvenement(@Valid @RequestBody CreateEvenementRequest req) {
+        return ResponseEntity.ok(service.createEvenement(req));
+    }
+
+    @PutMapping("/evenements/{id}")
+    @Operation(summary = "Modifier un événement")
+    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = EvenementDto.class)))
+    public ResponseEntity<EvenementDto> updateEvenement(
+            @Parameter(description = "UUID de l'événement") @PathVariable UUID id,
+            @Valid @RequestBody CreateEvenementRequest req) {
+        return ResponseEntity.ok(service.updateEvenement(id, req));
+    }
+
+    @DeleteMapping("/evenements/{id}")
+    @Operation(summary = "Supprimer un événement (suppression douce)")
+    @ApiResponse(responseCode = "204")
+    public ResponseEntity<Void> deleteEvenement(@PathVariable UUID id) {
+        service.deleteEvenement(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // ==================== MESSAGES DE CONTACT ====================
 
     @GetMapping("/contact")

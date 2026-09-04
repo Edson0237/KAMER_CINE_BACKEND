@@ -45,6 +45,7 @@ public class EcosystemeService {
     private final PartenaireRepository partenaireRepo;
     private final CandidaturePubliqueRepository candidatureRepo;
     private final ContactMessageRepository contactRepo;
+    private final EvenementRepository evenementRepo;
     private final RoleRepository roleRepo;
     private final UtilisateurRepository utilisateurRepo;
     private final PasswordEncoder passwordEncoder;
@@ -59,6 +60,7 @@ public class EcosystemeService {
             PartenaireRepository partenaireRepo,
             CandidaturePubliqueRepository candidatureRepo,
             ContactMessageRepository contactRepo,
+            EvenementRepository evenementRepo,
             RoleRepository roleRepo,
             UtilisateurRepository utilisateurRepo,
             PasswordEncoder passwordEncoder,
@@ -71,6 +73,7 @@ public class EcosystemeService {
         this.partenaireRepo = partenaireRepo;
         this.candidatureRepo = candidatureRepo;
         this.contactRepo = contactRepo;
+        this.evenementRepo = evenementRepo;
         this.roleRepo = roleRepo;
         this.utilisateurRepo = utilisateurRepo;
         this.passwordEncoder = passwordEncoder;
@@ -113,6 +116,22 @@ public class EcosystemeService {
     public List<PartenaireDto> getPartenaires() {
         return partenaireRepo.findAllByOrderByOrdreAsc()
                 .stream().map(this::toPartenaireDto).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<EvenementDto> getPublishedEvenements() {
+        return evenementRepo.findByStatutAndDeletedAtIsNullOrderByDateDebutAsc("programme")
+                .stream().map(this::toEvenementDto).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public EvenementDto getEvenementById(UUID id) {
+        EvenementEntity e = evenementRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Événement introuvable: " + id));
+        if (e.getDeletedAt() != null) {
+            throw new IllegalArgumentException("Événement introuvable: " + id);
+        }
+        return toEvenementDto(e);
     }
 
     // ==================== PUBLIC — ÉCRITURE ====================
@@ -444,6 +463,67 @@ public class EcosystemeService {
         return toContactDto(saved);
     }
 
+    // ==================== ADMIN — ÉVÉNEMENTS ====================
+
+    @Transactional(readOnly = true)
+    public List<EvenementDto> getAllEvenements() {
+        requireN1();
+        return evenementRepo.findByDeletedAtIsNullOrderByDateDebutAsc()
+                .stream().map(this::toEvenementDto).toList();
+    }
+
+    public EvenementDto createEvenement(CreateEvenementRequest req) {
+        requireN1();
+        EvenementEntity e = new EvenementEntity();
+        e.setId(UUID.randomUUID());
+        e.setTitre(req.titre());
+        e.setDescription(req.description());
+        e.setType(req.type() != null ? req.type() : "projection");
+        e.setDateDebut(req.dateDebut());
+        e.setDateFin(req.dateFin());
+        e.setLieu(req.lieu());
+        e.setAdresse(req.adresse());
+        e.setCommuneId(req.communeId());
+        e.setImageUrl(req.imageUrl());
+        e.setCapacite(req.capacite());
+        e.setStatut(req.statut() != null ? req.statut() : "programme");
+        e.setCreatedAt(OffsetDateTime.now());
+        e.setUpdatedAt(OffsetDateTime.now());
+        EvenementEntity saved = evenementRepo.save(e);
+        auditService.log("create", "evenement", saved.getId(), Map.of("titre", req.titre()));
+        return toEvenementDto(saved);
+    }
+
+    public EvenementDto updateEvenement(UUID id, CreateEvenementRequest req) {
+        requireN1();
+        EvenementEntity e = evenementRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Événement introuvable: " + id));
+        e.setTitre(req.titre());
+        e.setDescription(req.description());
+        if (req.type() != null) e.setType(req.type());
+        e.setDateDebut(req.dateDebut());
+        e.setDateFin(req.dateFin());
+        e.setLieu(req.lieu());
+        e.setAdresse(req.adresse());
+        e.setCommuneId(req.communeId());
+        e.setImageUrl(req.imageUrl());
+        e.setCapacite(req.capacite());
+        if (req.statut() != null) e.setStatut(req.statut());
+        e.setUpdatedAt(OffsetDateTime.now());
+        EvenementEntity saved = evenementRepo.save(e);
+        auditService.log("update", "evenement", saved.getId(), Map.of("titre", req.titre()));
+        return toEvenementDto(saved);
+    }
+
+    public void deleteEvenement(UUID id) {
+        requireN1();
+        EvenementEntity e = evenementRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Événement introuvable: " + id));
+        e.setDeletedAt(OffsetDateTime.now());
+        evenementRepo.save(e);
+        auditService.log("delete", "evenement", id, Map.of());
+    }
+
     // ==================== PRIVÉ ====================
 
     private void requireN1() {
@@ -495,5 +575,12 @@ public class EcosystemeService {
         return new ContactMessageDto(e.getId(), e.getNom(), e.getEmail(),
                 e.getSujet(), e.getMessage(), e.getStatut(),
                 e.getDateReception(), e.getDateTraitement());
+    }
+
+    private EvenementDto toEvenementDto(EvenementEntity e) {
+        return new EvenementDto(e.getId(), e.getTitre(), e.getDescription(),
+                e.getType(), e.getDateDebut(), e.getDateFin(),
+                e.getLieu(), e.getAdresse(), e.getCommuneId(),
+                e.getImageUrl(), e.getCapacite(), e.getStatut());
     }
 }

@@ -72,6 +72,21 @@ public class PublicEcosystemeController {
         return ResponseEntity.ok(service.getPartenaires());
     }
 
+    @GetMapping("/evenements")
+    @Operation(summary = "Lister les événements programmés")
+    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = EvenementDto.class)))
+    public ResponseEntity<List<EvenementDto>> getEvenements() {
+        return ResponseEntity.ok(service.getPublishedEvenements());
+    }
+
+    @GetMapping("/evenements/{id}")
+    @Operation(summary = "Consulter un événement")
+    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = EvenementDto.class)))
+    @ApiResponse(responseCode = "404", description = "Événement introuvable")
+    public ResponseEntity<EvenementDto> getEvenement(@PathVariable UUID id) {
+        return ResponseEntity.ok(service.getEvenementById(id));
+    }
+
     // ==================== ÉCRITURE ====================
 
     @PostMapping("/candidatures")
